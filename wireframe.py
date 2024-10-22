@@ -40,6 +40,7 @@ class Wireframe:
     def __init__(self):
         self.points = []
         self.edges = []
+        self.name = ""
 
     def add_edge(self, p1, p2):
         if p1 not in self.points:
