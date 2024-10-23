@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import os
 
 import wireframe as wf
 import transform
@@ -24,17 +25,19 @@ w = np.array([0, 0, 1, 1])
 e = np.array([0, 0, 0, 1])
 M_cam = transform.create_camera(u, v, w, e)
 
-# setup view volume
+# setup view volume for perspective
 fovy = 75
 near = -1
 far = -201
 
+# convert perspective variables to planes
 top = near * np.tan(np.radians(fovy) / 2)
 bottom = -top
 right = top * (SCREEN_WIDTH / SCREEN_HEIGHT)
 left = -right
 ortho_const = (far - near) / 2.6 # trying to guess to match the perspective view
 
+# create projection matrix
 p_matrix_ortho = transform.create_orthographic(SCREEN_WIDTH, SCREEN_HEIGHT, ortho_const, -ortho_const, ortho_const, -ortho_const, near, far) @ M_cam
 p_matrix_persp = transform.create_perspective(SCREEN_WIDTH, SCREEN_HEIGHT, left, right, bottom, top, near, far) @ M_cam
 p_matrix = p_matrix_persp
@@ -43,13 +46,25 @@ p_matrix = p_matrix_persp
 object = wf.Wireframe()
 object_world_pos = np.array([0, 0, (far - near) / 2, 1]) # move to object to the center of the view
 
-object = polyh.calculate_cube_vertices(30)
-# object = polyh.calculate_octahedron_vertices(30)
-# object = polyh.calculate_unit_square_vertices(30)
+# load polyhedra files
+polyhedra_dir = "polyhedra"
+polyhedra_files = [
+    f for f in os.listdir(polyhedra_dir) 
+    if os.path.isfile(os.path.join(polyhedra_dir, f))
+]
 
+# select a polyhedron to start
+selected_file = polyhedra_files[2]  # You can change this to select a different file
+object = polyh.parse_polyhedron(os.path.join(polyhedra_dir, selected_file))
+print(object.name)
+
+# variable to handle the delay between key presses
+last_key_press_time = 0
+
+# first rotation
 object.rotate(10, 10, 0)
 
-# actions using inputs
+# input actions
 def handle_perspective_change(keys):
     global p_matrix
 
@@ -81,7 +96,34 @@ def handle_camera_movement(keys):
     M_cam = transform.create_camera(u, v, w, T_cam @ e)
     p_matrix = p_matrix @ M_cam
 
-print("Move the camera with W, A, S, D, Q, E and change perspective with P, O")
+def handle_polyhedron_change(keys):
+    global object, selected_file, last_key_press_time
+
+    current_time = pygame.time.get_ticks()
+    delay = 200  # milliseconds
+
+    if current_time - last_key_press_time > delay:
+        if keys[pygame.K_PLUS] or keys[pygame.K_EQUALS]:
+            current_index = polyhedra_files.index(selected_file)
+            next_index = (current_index + 1) % len(polyhedra_files)
+
+            selected_file = polyhedra_files[next_index]
+            object = polyh.parse_polyhedron(os.path.join(polyhedra_dir, selected_file))
+            print(f"Loaded \"{object.name}\"")
+
+            last_key_press_time = current_time
+
+        elif keys[pygame.K_MINUS]:
+            current_index = polyhedra_files.index(selected_file)
+            prev_index = (current_index - 1) % len(polyhedra_files)
+
+            selected_file = polyhedra_files[prev_index]
+            object = polyh.parse_polyhedron(os.path.join(polyhedra_dir, selected_file))
+            print(f"Loaded \"{object.name}\"")
+
+            last_key_press_time = current_time
+
+print("Move the camera with W, A, S, D, Q, E and change perspective with P, O. Press + and - to cycle through polyhedra.")
 
 # main loop
 while running:
@@ -90,6 +132,7 @@ while running:
 
     handle_perspective_change(keys)
     handle_camera_movement(keys)
+    handle_polyhedron_change(keys)
 
     # pygame.QUIT event means the user clicked X to close your window
     for event in pygame.event.get():

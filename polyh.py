@@ -1,60 +1,63 @@
 import wireframe as wf
+import re
 
-def calculate_octahedron_vertices(s):
-    octahedron = wf.Wireframe()
+def parse_polyhedron(filename, scale=15):
+    with open(filename, 'r') as file:
+        lines = file.readlines()
 
-    octahedron.add_edge(wf.Point(s, 0, s, 1), wf.Point(-s, 0, s, 1))
-    octahedron.add_edge(wf.Point(-s, 0, s, 1), wf.Point(-s, 0, -s, 1))
-    octahedron.add_edge(wf.Point(-s, 0, -s, 1), wf.Point(s, 0, -s, 1))
-    octahedron.add_edge(wf.Point(s, 0, -s, 1), wf.Point(s, 0, s, 1))
+    if not lines:
+        raise ValueError("The file is empty")
 
-    octahedron.add_edge(wf.Point(s, 0, s, 1), wf.Point(0, 2*s, 0, 1))
-    octahedron.add_edge(wf.Point(-s, 0, s, 1), wf.Point(0, 2*s, 0, 1))
-    octahedron.add_edge(wf.Point(-s, 0, -s, 1), wf.Point(0, 2*s, 0, 1))
-    octahedron.add_edge(wf.Point(s, 0, -s, 1), wf.Point(0, 2*s, 0, 1))
+    # first line containe the polyhedron name
+    polyhedron_name = lines[0].strip()
 
-    octahedron.add_edge(wf.Point(s, 0, s, 1), wf.Point(0, -2*s, 0, 1))
-    octahedron.add_edge(wf.Point(-s, 0, s, 1), wf.Point(0, -2*s, 0, 1))
-    octahedron.add_edge(wf.Point(-s, 0, -s, 1), wf.Point(0, -2*s, 0, 1))
-    octahedron.add_edge(wf.Point(s, 0, -s, 1), wf.Point(0, -2*s, 0, 1))
+    variables = {}
+    vertices = []
+    edges = []
 
-    return octahedron
+    # define regular expressions to parse the file (maybe something wrong)
+    var_pattern = re.compile(r'(C\w+)\s*=\s*([0-9.eE\+\-]+)')
+    vertex_pattern = re.compile(r'V(\d+)\s*=\s*\(\s*([^,\)]+),\s*([^,\)]+),\s*([^,\)]+)\s*\)')
+    edge_pattern = re.compile(r'\{(.+?)\}')
 
-def calculate_cube_vertices(s):
-    cube = wf.Wireframe()
+    # scan the file line by line
+    for line in lines:
+        line = line.strip()
+        if line.startswith("#") or not line: 
+            continue
+        
+        # parse variables
+        var_match = var_pattern.match(line)
+        if var_match:
+            var_name, value = var_match.groups()
+            variables[var_name] = float(value)  # Store the value
+            continue
+  
+        # parse vertices
+        vertex_match = vertex_pattern.match(line)
+        if vertex_match:
+            index, x, y, z = vertex_match.groups()
+            # Replace any variable with its value and scale the coordinates
+            x = scale * eval(x, {}, variables)
+            y = scale * eval(y, {}, variables)
+            z = scale * eval(z, {}, variables)
+            vertices.append(wf.Point(x, y, z, 1))
+            continue 
 
-    cube.add_edge(wf.Point(s, s, -s, 1), wf.Point(-s, s, -s, 1))
-    cube.add_edge(wf.Point(-s, s, -s, 1), wf.Point(-s, -s, -s, 1))
-    cube.add_edge(wf.Point(-s, -s, -s, 1), wf.Point(s, -s, -s, 1))
-    cube.add_edge(wf.Point(s, -s, -s, 1), wf.Point(s, s, -s, 1))
+        # parse edges
+        edge_match = edge_pattern.match(line)
+        if edge_match:
+            edge_indices = map(int, edge_match.group(1).split(','))
+            edges.append(list(edge_indices))
 
-    cube.add_edge(wf.Point(s, s, s, 1), wf.Point(-s, s, s, 1))
-    cube.add_edge(wf.Point(-s, s, s, 1), wf.Point(-s, -s, s, 1))
-    cube.add_edge(wf.Point(-s, -s, s, 1), wf.Point(s, -s, s, 1))
-    cube.add_edge(wf.Point(s, -s, s, 1), wf.Point(s, s, s, 1))
+    # create polyhedron and add edges
+    polyhedron = wf.Wireframe()
+    polyhedron.name = polyhedron_name
 
-    cube.add_edge(wf.Point(s, s, s, 1), wf.Point(s, s, -s, 1))
-    cube.add_edge(wf.Point(-s, s, s, 1), wf.Point(-s, s, -s, 1))
-    cube.add_edge(wf.Point(-s, -s, s, 1), wf.Point(-s, -s, -s, 1))
-    cube.add_edge(wf.Point(s, -s, s, 1), wf.Point(s, -s, -s, 1))
+    for edge in edges:
+        for i in range(len(edge)):
+            p1 = vertices[edge[i]]
+            p2 = vertices[edge[(i + 1) % len(edge)]]
+            polyhedron.add_edge(p1, p2)
 
-    return cube
-
-def calculate_unit_square_vertices(s):
-    unit_square = wf.Wireframe()
-
-    unit_square.add_edge(wf.Point(s, 0, 0, 1), wf.Point(s, s, 0, 1))
-    unit_square.add_edge(wf.Point(s, s, 0, 1), wf.Point(0, s, 0, 1))
-    unit_square.add_edge(wf.Point(0, s, 0, 1), wf.Point(-s, s, 0, 1))
-    unit_square.add_edge(wf.Point(-s, s, 0, 1), wf.Point(-s, 0, 0, 1))
-    unit_square.add_edge(wf.Point(-s, 0, 0, 1), wf.Point(-s, -s, 0, 1))
-    unit_square.add_edge(wf.Point(-s, -s, 0, 1), wf.Point(0, -s, 0, 1))
-    unit_square.add_edge(wf.Point(0, -s, 0, 1), wf.Point(s, -s, 0, 1))
-    unit_square.add_edge(wf.Point(s, -s, 0, 1), wf.Point(s, 0, 0, 1))
-
-    unit_square.add_edge(wf.Point(0, 0, 0, 1), wf.Point(s, 0, 0, 1))
-    unit_square.add_edge(wf.Point(0, 0, 0, 1), wf.Point(0, s, 0, 1))
-    unit_square.add_edge(wf.Point(0, 0, 0, 1), wf.Point(-s, 0, 0, 1))
-    unit_square.add_edge(wf.Point(0, 0, 0, 1), wf.Point(0, -s, 0, 1))
-
-    return unit_square
+    return polyhedron
