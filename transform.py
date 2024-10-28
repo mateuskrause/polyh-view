@@ -77,7 +77,7 @@ def create_perspective(screen_width, screen_height, left, right, bottom, top, ne
     M = np.zeros((4, 4))
 
     # define the perspective matrix
-    P[0, 0] = near; P[0, 1] = 0   ; P[0, 2] = 0         ; P[0, 3] = 0
+    P[0, 0] = -near; P[0, 1] = 0   ; P[0, 2] = 0         ; P[0, 3] = 0
     P[1, 0] = 0   ; P[1, 1] = near; P[1, 2] = 0         ; P[1, 3] = 0
     P[2, 0] = 0   ; P[2, 1] = 0   ; P[2, 2] = near + far; P[2, 3] = -far * near
     P[3, 0] = 0   ; P[3, 1] = 0   ; P[3, 2] = 1         ; P[3, 3] = 0

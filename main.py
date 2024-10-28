@@ -3,6 +3,7 @@ import numpy as np
 import os
 
 import wireframe as wf
+import camera as cam
 import transform
 import polyh
 
@@ -19,11 +20,7 @@ clock = pygame.time.Clock()
 running = True
 
 # create camera orientation coordinates
-u = np.array([1, 0, 0, 1])
-v = np.array([0, 1, 0, 1])
-w = np.array([0, 0, 1, 1])
-e = np.array([0, 0, 0, 1])
-M_cam = transform.create_camera(u, v, w, e)
+M_cam = cam.Camera()
 
 # setup view volume for perspective
 fovy = 75
@@ -38,8 +35,8 @@ left = -right
 ortho_const = (far - near) / 2.6 # trying to guess to match the perspective view
 
 # create projection matrix
-p_matrix_ortho = transform.create_orthographic(SCREEN_WIDTH, SCREEN_HEIGHT, ortho_const, -ortho_const, ortho_const, -ortho_const, near, far) @ M_cam
-p_matrix_persp = transform.create_perspective(SCREEN_WIDTH, SCREEN_HEIGHT, left, right, bottom, top, near, far) @ M_cam
+p_matrix_ortho = transform.create_orthographic(SCREEN_WIDTH, SCREEN_HEIGHT, ortho_const, -ortho_const, ortho_const, -ortho_const, near, far)
+p_matrix_persp = transform.create_perspective(SCREEN_WIDTH, SCREEN_HEIGHT, left, right, bottom, top, near, far)
 p_matrix = p_matrix_persp
 
 # create wireframe
@@ -76,25 +73,28 @@ def handle_perspective_change(keys):
         print("orthographic")
 
 def handle_camera_movement(keys):
-    global p_matrix, u, v, w, e
-
-    T_cam = np.identity(4)
+    global p_matrix
 
     if keys[pygame.K_w]:
-        T_cam = transform.create_translation(np.array([0, 0, -1, 1]))        
+        M_cam.translate(np.array([0, 0, -1, 1]))     
     elif keys[pygame.K_s]:
-        T_cam = transform.create_translation(np.array([0, 0, 1, 1]))
+        M_cam.translate(np.array([0, 0, 1, 1]))
     elif keys[pygame.K_a]:
-        T_cam = transform.create_translation(np.array([-1, 0, 0, 1]))
+        M_cam.translate(np.array([-1, 0, 0, 1]))
     elif keys[pygame.K_d]:
-        T_cam = transform.create_translation(np.array([1, 0, 0, 1]))
+        M_cam.translate(np.array([1, 0, 0, 1]))
     elif keys[pygame.K_q]:
-        T_cam = transform.create_translation(np.array([0, -1, 0, 1]))
+        M_cam.translate(np.array([0, -1, 0, 1]))
     elif keys[pygame.K_e]:
-        T_cam = transform.create_translation(np.array([0, 1, 0, 1]))
-
-    M_cam = transform.create_camera(u, v, w, T_cam @ e)
-    p_matrix = p_matrix @ M_cam
+        M_cam.translate(np.array([0, 1, 0, 1]))
+    elif keys[pygame.K_LEFT]:
+        M_cam.rotate(0, 1, 0)
+    elif keys[pygame.K_RIGHT]:
+        M_cam.rotate(0, -1, 0)
+    elif keys[pygame.K_UP]:
+        M_cam.rotate(1, 0, 0)
+    elif keys[pygame.K_DOWN]:
+        M_cam.rotate(-1, 0, 0)
 
 def handle_polyhedron_change(keys):
     global object, selected_file, last_key_press_time
@@ -143,10 +143,13 @@ while running:
     screen.fill("grey")
 
     # actions
-    object.rotate(0, 1, 0)
+    # object.rotate(0, 1, 0)
 
     # get object translation matrix for the world space
     T_object = transform.create_translation(object_world_pos)
+
+    # define matrix for the camera
+    M = p_matrix @ M_cam.matrix
 
     # render object
     for edge in object.edges:
@@ -158,8 +161,8 @@ while running:
         p2 = T_object @ p2
 
         # apply projection
-        p1_proj = p_matrix @ p1
-        p2_proj = p_matrix @ p2
+        p1_proj = M @ p1
+        p2_proj = M @ p2
 
         # normalize coordinates
         p1_proj = p1_proj / p1_proj[3]
