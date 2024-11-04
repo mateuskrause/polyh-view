@@ -14,6 +14,7 @@ def parse_polyhedron(filename, scale=15):
     variables = {}
     vertices = []
     edges = []
+    faces = []
 
     # define regular expressions to parse the file (maybe something wrong)
     var_pattern = re.compile(r'(C\w+)\s*=\s*([0-9.eE\+\-]+)')
@@ -47,8 +48,15 @@ def parse_polyhedron(filename, scale=15):
         # parse edges
         edge_match = edge_pattern.match(line)
         if edge_match:
-            edge_indices = map(int, edge_match.group(1).split(','))
-            edges.append(list(edge_indices))
+            edge_indices = list(map(int, edge_match.group(1).split(',')))
+            # print(edge_indices)
+            edges.append(edge_indices)
+            
+            for i in range(len(edge_indices)):
+                p1 = edge_indices[i]
+                p2 = edge_indices[(i + 1) % len(edge_indices)]
+                face_edges = [wf.Edge(vertices[p1], vertices[p2])]
+                faces.append(wf.Face(face_edges))
 
     # create polyhedron and add edges
     polyhedron = wf.Wireframe()
@@ -59,5 +67,14 @@ def parse_polyhedron(filename, scale=15):
             p1 = vertices[edge[i]]
             p2 = vertices[edge[(i + 1) % len(edge)]]
             polyhedron.add_edge(p1, p2)
+
+    for face in faces:
+        polyhedron.add_face(face)
+    
+    # Print all polyhedron faces
+    # for face in faces:
+    #     print("Face with edges:")
+    #     for edge in face.edges:
+    #         print(f"Edge from {edge.p1.coords} to {edge.p2.coords}")
 
     return polyhedron

@@ -51,15 +51,15 @@ polyhedra_files = [
 ]
 
 # select a polyhedron to start
-selected_file = polyhedra_files[2]  # You can change this to select a different file
+selected_file = polyhedra_files[1]  # You can change this to select a different file
 object = polyh.parse_polyhedron(os.path.join(polyhedra_dir, selected_file))
-print(object.name)
+print(f"Loaded \"{object.name}\"")
 
 # variable to handle the delay between key presses
 last_key_press_time = 0
 
 # first rotation
-object.rotate(10, 10, 0)
+# object.rotate(10, 10, 0)
 
 # input actions
 def handle_perspective_change(keys):
@@ -67,34 +67,33 @@ def handle_perspective_change(keys):
 
     if keys[pygame.K_p] and not np.array_equal(p_matrix, p_matrix_persp):
         p_matrix = p_matrix_persp
-        print("perspective")
+        print("View: Perspective")
     elif keys[pygame.K_o] and not np.array_equal(p_matrix, p_matrix_ortho):
         p_matrix = p_matrix_ortho
-        print("orthographic")
+        print("View: Orthographic")
 
 def handle_camera_movement(keys):
     global p_matrix
 
-    if keys[pygame.K_w]:
-        M_cam.translate(np.array([0, 0, -1, 1]))     
-    elif keys[pygame.K_s]:
-        M_cam.translate(np.array([0, 0, 1, 1]))
-    elif keys[pygame.K_a]:
-        M_cam.translate(np.array([-1, 0, 0, 1]))
-    elif keys[pygame.K_d]:
-        M_cam.translate(np.array([1, 0, 0, 1]))
-    elif keys[pygame.K_q]:
-        M_cam.translate(np.array([0, -1, 0, 1]))
-    elif keys[pygame.K_e]:
-        M_cam.translate(np.array([0, 1, 0, 1]))
-    elif keys[pygame.K_LEFT]:
-        M_cam.rotate(0, 1, 0)
-    elif keys[pygame.K_RIGHT]:
-        M_cam.rotate(0, -1, 0)
-    elif keys[pygame.K_UP]:
-        M_cam.rotate(1, 0, 0)
-    elif keys[pygame.K_DOWN]:
-        M_cam.rotate(-1, 0, 0)
+    key_actions = {
+        pygame.K_w:     lambda: M_cam.dolly(-1),
+        pygame.K_s:     lambda: M_cam.dolly(1),
+        pygame.K_a:     lambda: M_cam.truck(-1),
+        pygame.K_d:     lambda: M_cam.truck(1),
+        pygame.K_q:     lambda: M_cam.pedestal(-1),
+        pygame.K_e:     lambda: M_cam.pedestal(1),
+        pygame.K_LEFT:  lambda: M_cam.pan(1),
+        pygame.K_RIGHT: lambda: M_cam.pan(-1),
+        pygame.K_UP:    lambda: M_cam.tilt(1),
+        pygame.K_DOWN:  lambda: M_cam.tilt(-1),
+        pygame.K_z:     lambda: M_cam.cant(1),
+        pygame.K_x:     lambda: M_cam.cant(-1),
+    }
+
+    for key, action in key_actions.items():
+        if keys[key]:
+            action()
+
 
 def handle_polyhedron_change(keys):
     global object, selected_file, last_key_press_time
@@ -123,7 +122,7 @@ def handle_polyhedron_change(keys):
 
             last_key_press_time = current_time
 
-print("Move the camera with W, A, S, D, Q, E and change perspective with P, O. Press + and - to cycle through polyhedra.")
+print("Move the camera with W, A, S, D, Q, E; Tilt, Pan and Cant with arrows and Z, X; change perspective with P, O. Press + and - to cycle through polyhedra.")
 
 # main loop
 while running:
