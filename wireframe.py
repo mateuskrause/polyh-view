@@ -27,6 +27,22 @@ def create_rotation_matrix_z(angle):
         [0          , 0           , 0, 1]
     ])
 
+def create_rotation_matrix(axis, angle):
+    # rotation matrix around an arbitrary axis
+    axis = axis / np.linalg.norm(axis)
+    x, y, z = axis
+
+    rad = np.radians(angle)
+    cos_a = np.cos(rad)
+    sin_a = np.sin(rad)
+
+    return np.array([
+        [cos_a + x * x * (1 - cos_a)    , x * y * (1 - cos_a) - z * sin_a, x * z * (1 - cos_a) + y * sin_a, 0],
+        [y * x * (1 - cos_a) + z * sin_a, cos_a + y * y * (1 - cos_a)    , y * z * (1 - cos_a) - x * sin_a, 0],
+        [z * x * (1 - cos_a) - y * sin_a, z * y * (1 - cos_a) + x * sin_a, cos_a + z * z * (1 - cos_a)    , 0],
+        [0                              , 0                              , 0                              , 1]
+    ])
+
 class Point:
     def __init__(self, x, y, z, w):
         self.coords = np.array([x, y, z, w])
@@ -36,10 +52,18 @@ class Edge:
         self.p1 = p1
         self.p2 = p2
 
+class Face:
+    def __init__(self, edges):
+        self.edges = edges
+
+    def add_edge(self, edge):
+        self.edges.append(edge)
+
 class Wireframe:
     def __init__(self):
         self.points = []
         self.edges = []
+        self.faces = []
         self.name = ""
 
     def add_edge(self, p1, p2):
@@ -50,6 +74,9 @@ class Wireframe:
             self.points.append(p2)
 
         self.edges.append(Edge(p1, p2))
+
+    def add_face(self, face):
+        self.faces.append(face)
 
     # rotate all the poins in the wireframe on the y axis by a certain degree
     def rotate(self, angle_x, angle_y, angle_z):
